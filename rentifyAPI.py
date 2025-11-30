@@ -133,7 +133,6 @@ def get_cosas(accion:str, id_prueba: int):
 crear uno nuevo para llamamiento interno de funciones
 problematica mismo endponit para actualizar insertar y mostrar
 
-
 y
 si
         "SELECT * FROM coches WHERE id_coche = ?", [id_coche]
