@@ -1,5 +1,5 @@
 import sqlite3
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
 
@@ -17,7 +17,6 @@ def root():
     return {"message": "API Rentify funcionando"}
 
 
-# ✔ Obtener todos los coches
 @app.get("/coches")
 def get_coches():
     conn = get_connection()
@@ -26,7 +25,6 @@ def get_coches():
     return [dict(row) for row in rows]
 
 
-# ✔ Obtener coche por ID
 @app.get("/coches/{id_coche}")
 def get_coche(id_coche: int):
     conn = get_connection()
@@ -36,6 +34,77 @@ def get_coche(id_coche: int):
     conn.close()
 
     if row is None:
-        return {"error": "Coche no encontrado"}
+        raise HTTPException(status_code=404, detail="Coche no encontrado")
 
     return dict(row)
+
+
+@app.get("/coches/filtro")
+def get_coches(marca: str = None, modelo: str = None):
+    conn = get_connection()
+    query = "SELECT * FROM coches WHERE 1=1"
+    params = []
+
+    if marca:
+        query += " AND marca = ?"
+        params.append(marca)
+
+    if modelo:
+        query += " AND modelo = ?"
+        params.append(modelo)
+
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+
+@app.post("/coches/insert/")
+def crear_coche(modelo: str, marca: str, consumo: float, hp: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO coches (modelo, marca, consumo, hp) VALUES (?, ?, ?, ?)",
+        (modelo, marca, consumo, hp),
+    )
+    conn.commit()
+    nuevo_id = cursor.lastrowid
+    conn.close()
+
+    return {"message": "Coche creado", "id_coche": nuevo_id}
+
+
+@app.put("/coches/update/{id_coche}")
+def actualizar_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE coches 
+        SET modelo = ?, marca = ?, consumo = ?, hp = ?
+        WHERE id_coche = ?
+        """,
+        (modelo, marca, consumo, hp, id_coche),
+    )
+    conn.commit()
+    conn.close()
+
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Coche no encontrado")
+
+    return {"message": "Coche actualizado"}
+
+
+@app.delete("/coches/delete/{id_coche}")
+def borrar_coche(id_coche: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM coches WHERE id_coche = ?", (id_coche,))
+    conn.commit()
+    conn.close()
+
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Coche no encontrado")
+
+    return {"message": "Coche eliminado"}
