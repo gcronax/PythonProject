@@ -1,4 +1,7 @@
+import pprint
 import sqlite3
+from itertools import count
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -24,12 +27,12 @@ class Coche(BaseModel):
 def root():
     return {"message": "API Rentify funcionando"}
 
-
 @app.get("/coches")
 def get_coches():
     conn = get_connection()
     rows = conn.execute("SELECT * FROM coches").fetchall()
     conn.close()
+    print("si lo lees eres tontox")
     return [dict(row) for row in rows]
 
 
@@ -52,9 +55,9 @@ def get_coches(marca: str = None, modelo: str = None):
     conn = get_connection()
     query = "SELECT * FROM coches WHERE 1=1"
     params = []
-
+    print(marca, modelo)
     if marca:
-        query += " AND marca = ?"
+        query += " AND UPPER(marca) = UPPER(?)"
         params.append(marca)
 
     if modelo:
