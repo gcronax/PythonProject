@@ -1,5 +1,6 @@
 import sqlite3
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -10,6 +11,13 @@ def get_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row  # devuelve dicts
     return conn
+
+class Coche(BaseModel):
+    id_coche: int
+    modelo: str
+    marca: str
+    consumo: float
+    hp: int
 
 
 @app.get("/")
@@ -75,16 +83,12 @@ def crear_coche(modelo: str, marca: str, consumo: float, hp: int):
     return {"message": "Coche creado", "id_coche": nuevo_id}
 
 
-@app.put("/coches/update/{id_coche}")
+@app.get("/coches/update/{id_coche}")
 def actualizar_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """
-        UPDATE coches 
-        SET modelo = ?, marca = ?, consumo = ?, hp = ?
-        WHERE id_coche = ?
-        """,
+        "UPDATE coches SET modelo = ?, marca = ?, consumo = ?, hp = ? WHERE id_coche = ?",
         (modelo, marca, consumo, hp, id_coche),
     )
     conn.commit()
