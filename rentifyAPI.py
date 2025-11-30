@@ -141,6 +141,46 @@ si
         "SELECT * FROM coches WHERE id_coche = ?", [id_coche]
 mirar si ese select para el tema del dinamismo se puede transformar en algo asi
         "SELECT * FROM ${nombre_tabla} WHERE ${id_tabla} = ?", [id_a_buscar]
+        
+        
+        
+        
+import sqlite3
+
+# Listas blancas de tablas y columnas permitidas
+TABLAS_PERMITIDAS = ["coches", "usuarios", "ventas"]
+COLUMNAS_PERMITIDAS = {
+    "coches": ["id_coche", "modelo", "marca"],
+    "usuarios": ["id_usuario", "nombre", "email"],
+    "ventas": ["id_venta", "id_coche", "id_usuario"]
+}
+
+def consulta_segura(nombre_tabla: str, columna: str, valor):
+    # Validar tabla
+    if nombre_tabla not in TABLAS_PERMITIDAS:
+        raise ValueError("Tabla no permitida")
+    # Validar columna
+    if columna not in COLUMNAS_PERMITIDAS[nombre_tabla]:
+        raise ValueError("Columna no permitida")
+    
+    conn = sqlite3.connect("mi_base.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Construir la consulta de forma segura
+    sql = f"SELECT * FROM {nombre_tabla} WHERE {columna} = ?"
+    cursor.execute(sql, (valor,))
+    resultados = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return resultados
+
+# Ejemplo de uso
+filas = consulta_segura("coches", "id_coche", 1)
+print(filas)
+        
+        
+        
+        
 
 
 
