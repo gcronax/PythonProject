@@ -25,9 +25,9 @@ class Coche(BaseModel):
 
 @app.get("/")
 def root():
-    return {"message": "API Rentify funcionando"}
+    return {"message": "API Rentify cooking"}
 
-@app.get("/coches")
+@app.get("/coches/show")
 def get_coches():
     conn = get_connection()
     rows = conn.execute("SELECT * FROM coches").fetchall()
@@ -36,7 +36,7 @@ def get_coches():
     return [dict(row) for row in rows]
 
 
-@app.get("/coches/{id_coche}")
+@app.get("/coches/search/{id_coche}")
 def get_coche(id_coche: int):
     conn = get_connection()
     row = conn.execute(
@@ -50,8 +50,8 @@ def get_coche(id_coche: int):
     return dict(row)
 
 
-@app.get("/coches/filtro")
-def get_coches(marca: str = None, modelo: str = None):
+@app.get("/coches/filter/")
+def get_cochesby(marca: str = None, modelo: str = None):
     conn = get_connection()
     query = "SELECT * FROM coches WHERE 1=1"
     params = []
@@ -59,7 +59,6 @@ def get_coches(marca: str = None, modelo: str = None):
     if marca:
         query += " AND UPPER(marca) = UPPER(?)"
         params.append(marca)
-
     if modelo:
         query += " AND modelo = ?"
         params.append(modelo)
@@ -70,9 +69,9 @@ def get_coches(marca: str = None, modelo: str = None):
     return [dict(row) for row in rows]
 
 
-
-@app.post("/coches/insert/")
-def crear_coche(modelo: str, marca: str, consumo: float, hp: int):
+#post
+@app.get("/coches/insert/")
+def insert_coche(modelo: str, marca: str, consumo: float, hp: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -85,9 +84,9 @@ def crear_coche(modelo: str, marca: str, consumo: float, hp: int):
 
     return {"message": "Coche creado", "id_coche": nuevo_id}
 
-
+#put
 @app.get("/coches/update/{id_coche}")
-def actualizar_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp: int):
+def update_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -102,9 +101,9 @@ def actualizar_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp:
 
     return {"message": "Coche actualizado"}
 
-
-@app.delete("/coches/delete/{id_coche}")
-def borrar_coche(id_coche: int):
+#delete
+@app.get("/coches/delete/{id_coche}")
+def delete_coche(id_coche: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM coches WHERE id_coche = ?", (id_coche,))
