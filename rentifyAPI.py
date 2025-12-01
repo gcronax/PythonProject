@@ -1,6 +1,6 @@
 import sqlite3
-
-from fastapi import FastAPI, HTTPException
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -27,15 +27,7 @@ class Coche(BaseModel):
 def root():
     return {"message": "API Rentify cooking"}
 
-@app.get("/show/{table_name}")
-def get_coches(table_name: str):
-    conn = get_connection()
-    rows = conn.execute(f"SELECT * FROM {table_name}").fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
-
-
-def  id_table(table_name: str):
+def id_table(table_name: str):
     conn = get_connection()
     row = conn.execute(
         f"SELECT name FROM pragma_table_info('{table_name}') WHERE pk = 1"
@@ -43,88 +35,136 @@ def  id_table(table_name: str):
     conn.close()
 
     if row is None:
-        raise HTTPException(status_code=404, detail="Coche no encontrado")
+        raise HTTPException(status_code=404, detail="Dato no encontrado")
     return row[0]
 
-
-
-
-
-
-
-@app.get("/search/{table_name}/{id}")
-def get_coche(table_name: str, id: int ):
+def headers_table(table_name: str):
     conn = get_connection()
-    row = conn.execute(
-        f"SELECT * FROM {table_name} WHERE {id_table(table_name)} = ?", [id]
-    ).fetchone()
+    rows = conn.execute(f"PRAGMA table_info('{table_name}');").fetchall()
     conn.close()
+    if not rows:
+        raise HTTPException(status_code=404, detail="Tabla no encontrada")
 
-    if row is None:
-        raise HTTPException(status_code=404, detail="Coche no encontrado")
-
-    return dict(row)
+    headers = [row["name"] for row in rows if row["name"] != id_table(table_name)]
+    return headers
 
 
-@app.get("/filter/coches/")
-def get_cochesby(marca: str = None, modelo: str = None):
-    conn = get_connection()
-    query = "SELECT * FROM coches WHERE 1=1"
+@app.get("/show/{table_name}")
+def get_data(table_name: str, by_id: Optional[int] = None):
+    if by_id is not None:
+        conn = get_connection()
+        row = conn.execute(
+            f"SELECT * FROM {table_name} WHERE {id_table(table_name)} = ?", [by_id]
+        ).fetchone()
+        conn.close()
+
+        if row is None:
+            raise HTTPException(status_code=404, detail="Coche no encontrado")
+
+        return dict(row)
+    else:
+        conn = get_connection()
+        rows = conn.execute(f"SELECT * FROM {table_name}").fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+
+
+
+
+
+@app.get("/filter/{table_name}")
+def get_data_where(table_name: str,  request: Request):
+
+    query_params = dict(request.query_params)
+    print(query_params)
+
+    query = f"SELECT * FROM {table_name} WHERE 1=1"
     params = []
-    print(marca, modelo)
-    if marca:
-        query += " AND UPPER(marca) = UPPER(?)"
-        params.append(marca)
-    if modelo:
-        query += " AND modelo = ?"
-        params.append(modelo)
 
-    rows = conn.execute(query, params).fetchall()
+    for name, value in query_params.items():
+        if name in headers_table(table_name):
+            query += f" AND {name} = ?"
+            params.append(value)
+
+    conn = get_connection()
+    result = conn.execute(query, params).fetchall()
     conn.close()
 
-    return [dict(row) for row in rows]
+    return [dict(row) for row in result]
 
 
 #post
-@app.post("/insert/{table_name}/")
-def insert_coche(
-        modelo: str,
-        marca: str,
-        consumo: float,
-        hp: int
-):
+@app.get("/insert/{table_name}/")
+def insert_data(table_name: str,  request: Request):
+
+    query_params = dict(request.query_params)
+    print(query_params)
+
+    insert_headers = []
+    insert_values = []
+
+    for name in headers_table(table_name):
+        if name in query_params:
+            insert_headers.append(name)
+            insert_values.append(query_params[name])
+
+    if not insert_headers:
+        raise HTTPException(status_code=400, detail="No se enviaron datos válidos para insertar")
+
+    headers = ", ".join(insert_headers)
+    values = ", ".join(["?"] * len(insert_headers))
+
+    query = f"INSERT INTO {table_name} ({headers}) VALUES ({values})"
+
     conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        f"INSERT INTO coches (modelo, marca, consumo, hp) VALUES (?, ?, ?, ?)",
-        (modelo, marca, consumo, hp),
-    )
+    cur = conn.cursor()
+    cur.execute(query, insert_values)
     conn.commit()
-    nuevo_id = cursor.lastrowid
+
+    nuevo_id = cur.lastrowid
     conn.close()
 
-    return {"message": "Coche creado", "id_coche": nuevo_id}
+    return {"message": "Registro creado", "id": nuevo_id}
 
 #put
-@app.put("/coches/update/{id_coche}")
-def update_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp: int):
+@app.get("/update/{table_name}/{by_id}")
+def update_data(table_name: str, by_id: int,  request: Request):
+
+    query_params = dict(request.query_params)
+    print(query_params)
+
+    insert_headers = []
+    insert_values = []
+
+    for name in headers_table(table_name):
+        if name in query_params:
+            insert_headers.append(f"{name} = ?")
+            insert_values.append(query_params[name])
+
+    if not insert_headers:
+        raise HTTPException(status_code=400, detail="No se enviaron datos válidos para insertar")
+
+    headers = ", ".join(insert_headers)
+    query = f"UPDATE {table_name} SET {headers} WHERE {id_table(table_name)} = ?"
+
+    insert_values.append(by_id)
+
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE coches SET modelo = ?, marca = ?, consumo = ?, hp = ? WHERE id_coche = ?",
-        (modelo, marca, consumo, hp, id_coche),
-    )
+    cursor.execute(query, insert_values)
     conn.commit()
+
+    updated = cursor.rowcount
     conn.close()
 
-    if cursor.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Coche no encontrado")
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
 
-    return {"message": "Coche actualizado"}
+    return {"message": "Registro actualizado", "id": by_id}
 
 #delete
-@app.delete("/coches/delete/{id_coche}")
-def delete_coche(id_coche: int):
+@app.get("/coches/delete/{id_coche}")
+def delete_data(id_coche: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM coches WHERE id_coche = ?", (id_coche,))
@@ -145,10 +185,6 @@ puede pasar a
 /coches/{accion}/{id_coche}
 
 
-@app.get("/coches/{accion}/{id_prueba}")
-def get_cosas(accion:str, id_prueba: int):
-    print(accion, id_prueba)
-    return {"message": "prueba",accion: id_prueba}
 
 crear uno nuevo para llamamiento interno de funciones
 problematica mismo endponit para actualizar insertar y mostrar
@@ -160,44 +196,7 @@ mirar si ese select para el tema del dinamismo se puede transformar en algo asi
         "SELECT * FROM ${nombre_tabla} WHERE ${id_tabla} = ?", [id_a_buscar]
         
         
-        
-        
-import sqlite3
-
-# Listas blancas de tablas y columnas permitidas
-TABLAS_PERMITIDAS = ["coches", "usuarios", "ventas"]
-COLUMNAS_PERMITIDAS = {
-    "coches": ["id_coche", "modelo", "marca"],
-    "usuarios": ["id_usuario", "nombre", "email"],
-    "ventas": ["id_venta", "id_coche", "id_usuario"]
-}
-
-def consulta_segura(nombre_tabla: str, columna: str, valor):
-    # Validar tabla
-    if nombre_tabla not in TABLAS_PERMITIDAS:
-        raise ValueError("Tabla no permitida")
-    # Validar columna
-    if columna not in COLUMNAS_PERMITIDAS[nombre_tabla]:
-        raise ValueError("Columna no permitida")
-    
-    conn = sqlite3.connect("mi_base.db")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    # Construir la consulta de forma segura
-    sql = f"SELECT * FROM {nombre_tabla} WHERE {columna} = ?"
-    cursor.execute(sql, (valor,))
-    resultados = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return resultados
-
-# Ejemplo de uso
-filas = consulta_segura("coches", "id_coche", 1)
-print(filas)
-        
-        
-        
-        
+           
 
 
 
