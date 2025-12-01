@@ -163,11 +163,11 @@ def update_data(table_name: str, by_id: int,  request: Request):
     return {"message": "Registro actualizado", "id": by_id}
 
 #delete
-@app.get("/coches/delete/{id_coche}")
-def delete_data(id_coche: int):
+@app.get("/delete/{table_name}/{by_id}")
+def delete_data(table_name: str, by_id: int):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM coches WHERE id_coche = ?", (id_coche,))
+    cursor.execute(f"DELETE FROM {table_name} WHERE {id_table(table_name)} = ?", [by_id])
     conn.commit()
     conn.close()
 
