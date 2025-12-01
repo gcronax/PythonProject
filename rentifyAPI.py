@@ -7,6 +7,8 @@ app = FastAPI()
 
 DATABASE = "cars.db"
 'unico campo a cambiar la ruta a la base de datos a atacar'
+print("usar para arramcar la api")
+print("uvicorn rentifyAPI:app --reload")
 
 
 def get_connection():
