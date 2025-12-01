@@ -13,13 +13,7 @@ def get_connection():
     conn.row_factory = sqlite3.Row  # return dicks
     return conn
 
-#class Coche(BaseModel):
-class Coche(BaseModel):
-    id_coche: int
-    modelo: str
-    marca: str
-    consumo: float
-    hp: int
+
 
 
 
