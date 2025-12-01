@@ -63,9 +63,6 @@ def get_data(table_name: str, by_id: Optional[int] = None):
         return [dict(row) for row in rows]
 
 
-
-
-
 @app.get("/filter/{table_name}")
 def get_data_where(table_name: str,  request: Request):
 
@@ -88,7 +85,7 @@ def get_data_where(table_name: str,  request: Request):
 
 
 #post
-@app.get("/insert/{table_name}/")
+@app.post("/insert/{table_name}/")
 def insert_data(table_name: str,  request: Request):
 
     query_params = dict(request.query_params)
@@ -121,7 +118,7 @@ def insert_data(table_name: str,  request: Request):
     return {"message": "Registro creado", "id": nuevo_id}
 
 #put
-@app.get("/update/{table_name}/{by_id}")
+@app.put("/update/{table_name}/{by_id}")
 def update_data(table_name: str, by_id: int,  request: Request):
 
     query_params = dict(request.query_params)
@@ -157,7 +154,7 @@ def update_data(table_name: str, by_id: int,  request: Request):
     return {"message": "Registro actualizado", "id": by_id}
 
 #delete
-@app.get("/delete/{table_name}/{by_id}")
+@app.delete("/delete/{table_name}/{by_id}")
 def delete_data(table_name: str, by_id: int):
     conn = get_connection()
     cursor = conn.cursor()
