@@ -23,40 +23,28 @@ class Coche(BaseModel):
 
 
 
+
+
+
+
 @app.get("/")
 def root():
     return {"message": "API Rentify cooking"}
 
-@app.get("/show/{table_name}")
-def get_coches(table_name: str):
+@app.get("/coches/show")
+def get_coches():
     conn = get_connection()
-    rows = conn.execute(f"SELECT * FROM {table_name}").fetchall()
+    rows = conn.execute("SELECT * FROM coches").fetchall()
     conn.close()
+    print("si lo lees eres tontox")
     return [dict(row) for row in rows]
 
 
-def  id_table(table_name: str):
+@app.get("/coches/search/{id_coche}")
+def get_coche(id_coche: int):
     conn = get_connection()
     row = conn.execute(
-        f"SELECT name FROM pragma_table_info('{table_name}') WHERE pk = 1"
-    ).fetchone()
-    conn.close()
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Coche no encontrado")
-    return row[0]
-
-
-
-
-
-
-
-@app.get("/search/{table_name}/{id}")
-def get_coche(table_name: str, id: int ):
-    conn = get_connection()
-    row = conn.execute(
-        f"SELECT * FROM {table_name} WHERE {id_table(table_name)} = ?", [id]
+        "SELECT * FROM coches WHERE id_coche = ?", [id_coche]
     ).fetchone()
     conn.close()
 
@@ -86,7 +74,7 @@ def get_cochesby(marca: str = None, modelo: str = None):
 
 
 #post
-@app.post("/coches/insert/")
+@app.get("/coches/insert/")
 def insert_coche(modelo: str, marca: str, consumo: float, hp: int):
     conn = get_connection()
     cursor = conn.cursor()
@@ -101,7 +89,7 @@ def insert_coche(modelo: str, marca: str, consumo: float, hp: int):
     return {"message": "Coche creado", "id_coche": nuevo_id}
 
 #put
-@app.put("/coches/update/{id_coche}")
+@app.get("/coches/update/{id_coche}")
 def update_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp: int):
     conn = get_connection()
     cursor = conn.cursor()
@@ -118,7 +106,7 @@ def update_coche(id_coche: int, modelo: str, marca: str, consumo: float, hp: int
     return {"message": "Coche actualizado"}
 
 #delete
-@app.delete("/coches/delete/{id_coche}")
+@app.get("/coches/delete/{id_coche}")
 def delete_coche(id_coche: int):
     conn = get_connection()
     cursor = conn.cursor()

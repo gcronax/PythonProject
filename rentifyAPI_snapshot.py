@@ -2,7 +2,7 @@ from fastapi import FastAPI, Query, HTTPException
 import sqlite3
 
 app = FastAPI()
-DATABASE = "cars.sqlite"
+DATABASE = "cars.db"
 
 def get_connection():
     conn = sqlite3.connect(DATABASE)
