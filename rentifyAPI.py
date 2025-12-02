@@ -178,29 +178,86 @@ def delete_data(table_name: str, by_id: int):
 
 @app.get("/help", response_class=HTMLResponse)
 def help():
-    md = """
+    md = """ 
 # 📘 API Documentation – RentifyAPI
 
 ## Endpoints disponibles
 ### `GET /show/{table_name}`
 Muestra todos los registros o uno por ID.
+<br>
+Ejemplos:
+<br>
+/show/(tu_tabla)
+<br>
+/show/(tu_tabla)?by_id==(tu_id)
 
 ### `GET /filter/{table_name}`
 Filtra con parámetros dinámicos.
+<br>
+Ejemplos:
+<br>
+/filter/(tu_tabla)?cabezera1=info1&cabezera2=info2
 
 ### `POST /insert/{table_name}`
 Inserta un registro.
+<br>
+Ejemplos:
+<br>
+/insert/(tu_tabla)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
 
 ### `PUT /update/{table_name}/{by_id}`
 Actualiza un registro.
+<br>
+Ejemplos:
+<br>
+/update/(tu_tabla)/(tu_id)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
 
 ### `DELETE /delete/{table_name}/{by_id}`
 Elimina un registro.
+<br>
+Ejemplos:
+<br>
+/delete/(tu_tabla)/(tu_id)
 """
 
-    html = markdown.markdown(md)
-    return html
+    body = markdown.markdown(md)
 
+    html = f"""
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background-color: #f5f6fa;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+            }}
+            .content {{
+                background: white;
+                padding: 40px;
+                border-radius: 12px;
+                width: 60%;
+                max-width: 800px;
+                box-shadow: 0 0 12px rgba(0,0,0,0.1);
+            }}
+            h1, h2, h3, p {{
+                text-align: center;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="content">
+            {body}
+        </div>
+    </body>
+    </html>
+    """
+
+    return html
 
 
 
