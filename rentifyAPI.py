@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-DATABASE = "cars.db"
+DATABASE = "rentify.db"
 'Único campo a cambiar, la ruta a la base de datos a atacar'
 print("usar para arramcar la api")
 print("python -m uvicorn rentifyAPI:app --reload")
@@ -72,6 +72,7 @@ def get_data_where(table_name: str,  request: Request):
 
     query_params = dict(request.query_params)
     print(query_params)
+    print(headers_table(table_name))
 
     query = f"SELECT * FROM {table_name} WHERE 1=1"
     params = []
