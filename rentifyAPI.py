@@ -199,7 +199,6 @@ def update_data(table_name: str, by_id: int,  request: Request):
         cursor.execute(query, insert_values)
         conn.commit()
         updated = cursor.rowcount
-        conn.close()
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
     except sqlite3.IntegrityError as e:
