@@ -253,6 +253,7 @@ def helpx():
 # 📘 API Documentation – RentifyAPI
 
 ## Endpoints disponibles
+
 ### `GET /show/{table_name}`
 Muestra todos los registros o uno por ID.
 <br>
@@ -274,13 +275,14 @@ Inserta un registro.
 <br>
 Ejemplos:
 <br>
-curl.exe -X POST "http://localhost:8000/users/?nif=2132s13d&email=asdasd&password=asdasd" -v
+curl -X POST "http://localhost:8000/users/?nif=2132s13d&email=asdasd&password=asdasd" -v
+
 ### `PUT /{table_name}/{by_id}`
 Actualiza un registro.
 <br>
 Ejemplos:
 <br>
-/(tu_tabla)/(tu_id)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
+curl -X PUT "http://localhost:8000/users/15/?email=adasd&password=asdasd&address_fk=20" -v
 
 ### `DELETE /{table_name}/{by_id}`
 Elimina un registro.
