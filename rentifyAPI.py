@@ -5,7 +5,6 @@ from typing import Optional
 import markdown
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -145,14 +144,13 @@ def insert_data(table_name: str,  request: Request):
     values = ", ".join(["?"] * len(insert_headers))
 
     query = f"INSERT INTO {table_name} ({headers}) VALUES ({values})"
-
+    conn = None
     try:
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(query, insert_values)
         conn.commit()
         new_id = cur.lastrowid
-        conn.close()
         return {"message": "Registro creado", "id": new_id}
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
@@ -160,7 +158,10 @@ def insert_data(table_name: str,  request: Request):
         raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
 
 
 #put
@@ -240,7 +241,7 @@ def delete_data(table_name: str, by_id: int):
 
 
 @app.get("/help", response_class=HTMLResponse)
-def help():
+def helpx():
     md = """ 
 # 📘 API Documentation – RentifyAPI
 
