@@ -167,7 +167,7 @@ def insert_data(table_name: str,  request: Request):
 
 
 #put
-@app.put("/{table_name}/{by_id}")
+@app.put("/{table_name}/{by_id}/")
 def update_data(table_name: str, by_id: int,  request: Request):
     validate_table_name(table_name)
 
