@@ -134,6 +134,8 @@ def insert_data(table_name: str,  request: Request):
 
     for name in headers_table(table_name):
         if name in query_params:
+            if query_params[name] == "":
+                raise HTTPException(status_code=400, detail=f"{name} vacio")
             insert_headers.append(name)
             insert_values.append(query_params[name])
 
@@ -177,6 +179,8 @@ def update_data(table_name: str, by_id: int,  request: Request):
 
     for name in headers_table(table_name):
         if name in query_params:
+            if query_params[name] == "":
+                raise HTTPException(status_code=400, detail=f"{name} vacio")
             insert_headers.append(f"{name} = ?")
             insert_values.append(query_params[name])
 
@@ -188,7 +192,7 @@ def update_data(table_name: str, by_id: int,  request: Request):
 
     insert_values.append(by_id)
 
-
+    conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -202,6 +206,10 @@ def update_data(table_name: str, by_id: int,  request: Request):
         raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
 
     if updated == 0:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
@@ -267,8 +275,7 @@ Inserta un registro.
 <br>
 Ejemplos:
 <br>
-/(tu_tabla)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
-
+curl.exe -X POST "http://localhost:8000/users/?nif=2132s13d&email=asdasd&password=asdasd" -v
 ### `PUT /{table_name}/{by_id}`
 Actualiza un registro.
 <br>
