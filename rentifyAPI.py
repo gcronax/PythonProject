@@ -90,7 +90,7 @@ def get_data_where(table_name: str,  request: Request):
 
 
 #post
-@app.post("/insert/{table_name}/")
+@app.post("/{table_name}/")
 def insert_data(table_name: str,  request: Request):
 
     query_params = dict(request.query_params)
@@ -112,10 +112,15 @@ def insert_data(table_name: str,  request: Request):
 
     query = f"INSERT INTO {table_name} ({headers}) VALUES ({values})"
 
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute(query, insert_values)
-    conn.commit()
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(query, insert_values)
+        conn.commit()
+
+    except Exception as e:
+        raise HTTPException(status_code=456, detail="Datos erróneos")
 
     nuevo_id = cur.lastrowid
     conn.close()
@@ -123,7 +128,7 @@ def insert_data(table_name: str,  request: Request):
     return {"message": "Registro creado", "id": nuevo_id}
 
 #put
-@app.put("/update/{table_name}/{by_id}")
+@app.put("/{table_name}/{by_id}")
 def update_data(table_name: str, by_id: int,  request: Request):
 
     query_params = dict(request.query_params)
@@ -145,10 +150,15 @@ def update_data(table_name: str, by_id: int,  request: Request):
 
     insert_values.append(by_id)
 
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(query, insert_values)
-    conn.commit()
+
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, insert_values)
+        conn.commit()
+    except Exception as e:
+        raise HTTPException(status_code=456, detail="Datos erróneos")
 
     updated = cursor.rowcount
     conn.close()
@@ -159,7 +169,7 @@ def update_data(table_name: str, by_id: int,  request: Request):
     return {"message": "Registro actualizado", "id": by_id}
 
 #delete
-@app.delete("/delete/{table_name}/{by_id}")
+@app.delete("/{table_name}/{by_id}")
 def delete_data(table_name: str, by_id: int):
     conn = get_connection()
     cursor = conn.cursor()
@@ -204,16 +214,16 @@ Inserta un registro.
 <br>
 Ejemplos:
 <br>
-/insert/(tu_tabla)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
+/(tu_tabla)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
 
 ### `PUT /update/{table_name}/{by_id}`
 Actualiza un registro.
 <br>
 Ejemplos:
 <br>
-/update/(tu_tabla)/(tu_id)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
+/(tu_tabla)/(tu_id)?cabezera1=info1&cabezera2=info2&cabezera3=info3&cabezera4=info4
 
-### `DELETE /delete/{table_name}/{by_id}`
+### `DELETE /{table_name}/{by_id}`
 Elimina un registro.
 <br>
 Ejemplos:
