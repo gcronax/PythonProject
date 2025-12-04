@@ -49,8 +49,6 @@ def execute_query(query: str, params=None):
             conn.close()
 
 
-
-
 @app.get("/")
 def root():
     return {"message": "API Rentify cooking"}
@@ -87,6 +85,32 @@ def validate_table_exists(table_name: str):
         raise HTTPException(status_code=404, detail="La tabla no existe")
 
     return True
+
+def tables_exists():
+
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table';"
+        )
+        rows = cursor.fetchall()
+
+        tables = [row[0] for row in rows]
+
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=409, detail=f"Violación de integridad: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+    return tables
 
 def id_table(table_name: str):
     conn=None
@@ -439,7 +463,15 @@ Pagina de ayuda desde navegador.
 Ejemplos:
 <br>
 /help?table_name=users
+
+### `/docs`
+Documentación automática hecha por la propia API
+
+### tablas disponibles
 """
+    for tabla in tables_exists():
+        if not tabla=="sqlite_sequence":
+            md += f"""{tabla}<br>"""
 
 
     if table_name is not None:
@@ -468,8 +500,9 @@ Ejemplos:
                 void=True
             if not void:
                 aux += f""" nothing"""
-
-        md=f"""{idtable} -> **primaryKEY** {aux}   """
+        md = f"""## {table_name}   
+"""
+        md += f"""<br>{idtable} -> **primaryKEY** {aux}   """
 
 
     body = markdown.markdown(md)
