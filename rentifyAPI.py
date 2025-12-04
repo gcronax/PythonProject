@@ -406,16 +406,18 @@ curl -X DELETE "http://localhost:8000/users/40" -v
         idtable = id_table(table_name)
         campos = headers_table(table_name)
         fk = fk_headers(table_name)
-        #[0]["column"]
         unique = unique_header(table_name)
         not_null = not_null_header(table_name)
-
         fk_name=[row["column"] for row in fk]
 
-        aux=f"""<br>  campos->   {campos}
-        <br>  fk-> {fk_name}
-        <br>  unique-> {unique}
-        <br>  not_null-> {not_null}"""
+        aux = """"""
+        for campo in campos:
+            aux+=f"""<br> {campo}"""
+
+
+
+
+
 
 
 
