@@ -420,16 +420,6 @@ curl -X DELETE "http://localhost:8000/users/40" -v
             if campo in fk_name:
                 aux += f""" foreignKEY"""
 
-
-
-
-
-
-
-
-
-
-
         md=f"""{idtable} -> primaryKEY {aux}   """
 
 
