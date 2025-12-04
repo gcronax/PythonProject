@@ -412,7 +412,13 @@ curl -X DELETE "http://localhost:8000/users/40" -v
 
         aux = """"""
         for campo in campos:
-            aux+=f"""<br> {campo}"""
+            aux+=f"""<br> {campo} ->"""
+            if campo in unique:
+                aux += f""" uniq"""
+            if campo in not_null:
+                aux += f""" notNULL"""
+            if campo in fk_name:
+                aux += f""" foreignKEY"""
 
 
 
