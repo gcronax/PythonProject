@@ -5,6 +5,7 @@ from typing import Optional
 import markdown
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
+from pydantic_core.core_schema import none_schema
 
 app = FastAPI()
 
@@ -56,15 +57,109 @@ def validate_table_name(table_name: str):
         raise HTTPException(status_code=400, detail="Nombre de tabla inválido")
 
 def id_table(table_name: str):
-    conn = get_connection()
-    row = conn.execute(
-        f"SELECT name FROM pragma_table_info('{table_name}') WHERE pk = 1"
-    ).fetchone()
-    conn.close()
+    conn=None
+    try:
+        conn = get_connection()
+        row = conn.execute(
+            f"SELECT name FROM pragma_table_info('{table_name}') WHERE pk = 1"
+        ).fetchone()
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
 
     if row is None:
         raise HTTPException(status_code=404, detail="Dato no encontrado")
     return row[0]
+
+def fk_headers(table_name: str):
+
+    conn = None
+    try:
+        conn = get_connection()
+        rows = conn.execute(
+            f"PRAGMA foreign_key_list('{table_name}')"
+        ).fetchall()
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
+
+    return [
+        {
+            "column": row["from"],
+            "references_table": row["table"],
+            "references_column": row["to"]
+        }
+        for row in rows
+    ]
+
+
+def unique_header(table_name: str):
+    conn = None
+    try:
+        conn = get_connection()
+        rows = conn.execute(
+            f"PRAGMA foreign_key_list('{table_name}')"
+        ).fetchall()
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
+
+    return [
+        {
+            "column": row["from"],
+            "references_table": row["table"],
+            "references_column": row["to"]
+        }
+        for row in rows
+    ]
+
+def not_null_header(table_name: str):
+    conn = None
+    try:
+        conn = get_connection()
+        rows = conn.execute(
+            f"PRAGMA foreign_key_list('{table_name}')"
+        ).fetchall()
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
+
+    return [
+        {
+            "column": row["from"],
+            "references_table": row["table"],
+            "references_column": row["to"]
+        }
+        for row in rows
+    ]
 
 def headers_table(table_name: str):
     conn = get_connection()
@@ -221,21 +316,22 @@ def delete_data(table_name: str, by_id: int):
     validate_table_name(table_name)
 
 
-
+    conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(f"DELETE FROM {table_name} WHERE {id_table(table_name)} = ?", [by_id])
         conn.commit()
-        conn.close()
-
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
     except sqlite3.IntegrityError as e:
         raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
 
     if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail=f"Elemento de {table_name} no encontrado")
@@ -248,7 +344,7 @@ def delete_data(table_name: str, by_id: int):
 
 
 @app.get("/help", response_class=HTMLResponse)
-def helpx():
+def helpx(table_name: Optional[str] = None):
     md = """ 
 # 📘 API Documentation – RentifyAPI
 ## Endpoints disponibles
@@ -290,6 +386,25 @@ Ejemplos:
 <br>
 curl -X DELETE "http://localhost:8000/users/40" -v
 """
+
+
+    if table_name is not None:
+
+
+
+
+
+
+
+
+
+
+        md=f"""id->   {id_table(table_name)}    <br>        
+                campos->   {headers_table(table_name)}
+                <br>  fk-> {fk_headers(table_name)}
+
+"""
+
 
     body = markdown.markdown(md)
 
