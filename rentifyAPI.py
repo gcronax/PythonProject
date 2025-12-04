@@ -251,7 +251,6 @@ def delete_data(table_name: str, by_id: int):
 def helpx():
     md = """ 
 # 📘 API Documentation – RentifyAPI
-
 ## Endpoints disponibles
 
 ### `GET /show/{table_name}`
