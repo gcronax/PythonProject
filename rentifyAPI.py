@@ -28,13 +28,14 @@ def get_connection():
 def execute_query(query: str, params=None):
     if params is None:
         params = []
+
+    conn=None
     try:
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(query, params)
         conn.commit()
         rows = cur.fetchall()
-        conn.close()
         return rows
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
@@ -42,7 +43,10 @@ def execute_query(query: str, params=None):
         raise HTTPException(status_code=409, detail=f"Violación de integridad: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
-
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
 
 
 
@@ -54,6 +58,35 @@ def root():
 def validate_table_name(table_name: str):
     if not re.match(r"^[a-z]+$", table_name):
         raise HTTPException(status_code=400, detail="Nombre de tabla inválido")
+
+def validate_table_exists(table_name: str):
+    validate_table_name(table_name)
+
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
+            [table_name]
+        )
+        exists = cursor.fetchone()
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=409, detail=f"Violación de integridad: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
+
+    if not exists:
+        raise HTTPException(status_code=404, detail="La tabla no existe")
+
+    return True
 
 def id_table(table_name: str):
     conn=None
@@ -231,7 +264,7 @@ def get_data_where(table_name: str,  request: Request):
 
 
 #post
-@app.post("/{table_name}/")
+@app.post("/{table_name}")
 def insert_data(table_name: str,  request: Request):
     validate_table_name(table_name)
 
@@ -276,7 +309,7 @@ def insert_data(table_name: str,  request: Request):
 
 
 #put
-@app.put("/{table_name}/{by_id}/")
+@app.put("/{table_name}/{by_id}")
 def update_data(table_name: str, by_id: int,  request: Request):
     validate_table_name(table_name)
 
@@ -399,21 +432,31 @@ Elimina un registro.
 Ejemplos:
 <br>
 curl -X DELETE "http://localhost:8000/users/40" -v
+
+### `/help`
+Pagina de ayuda desde navegador.
+<br>
+Ejemplos:
+<br>
+/help?table_name=users
 """
 
 
     if table_name is not None:
+        validate_table_exists(table_name)
+
         idtable = id_table(table_name)
         campos = headers_table(table_name)
         fk = fk_headers(table_name)
         unique = unique_header(table_name)
         not_null = not_null_header(table_name)
+
         fk_name=[row["column"] for row in fk]
 
         aux = """"""
         for campo in campos:
             void: bool = False
-            aux+=f"""<br> {campo} ->"""
+            aux+=f"""<br> <br> {campo} ->"""
             if campo in unique:
                 aux += f""" **uniq**"""
                 void=True
