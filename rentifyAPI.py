@@ -412,15 +412,21 @@ curl -X DELETE "http://localhost:8000/users/40" -v
 
         aux = """"""
         for campo in campos:
+            void: bool = False
             aux+=f"""<br> {campo} ->"""
             if campo in unique:
-                aux += f""" uniq"""
+                aux += f""" **uniq**"""
+                void=True
             if campo in not_null:
-                aux += f""" notNULL"""
+                aux += f""" **notNULL**"""
+                void=True
             if campo in fk_name:
-                aux += f""" foreignKEY"""
+                aux += f""" **foreignKEY**"""
+                void=True
+            if not void:
+                aux += f""" nothing"""
 
-        md=f"""{idtable} -> primaryKEY {aux}   """
+        md=f"""{idtable} -> **primaryKEY** {aux}   """
 
 
     body = markdown.markdown(md)
