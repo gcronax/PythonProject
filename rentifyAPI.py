@@ -5,7 +5,6 @@ from typing import Optional
 import markdown
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from pydantic_core.core_schema import none_schema
 
 app = FastAPI()
 
@@ -108,12 +107,26 @@ def fk_headers(table_name: str):
 
 
 def unique_header(table_name: str):
+
     conn = None
     try:
         conn = get_connection()
-        rows = conn.execute(
-            f"PRAGMA foreign_key_list('{table_name}')"
+
+        index_list = conn.execute(
+            f"PRAGMA index_list('{table_name}')"
         ).fetchall()
+
+        uniques = list({
+            col["name"]
+            for idx in index_list if idx["unique"] == 1
+            for col in conn.execute(
+                f"PRAGMA index_info('{idx['name']}')"
+            ).fetchall()
+
+        })
+
+
+
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
     except sqlite3.IntegrityError as e:
@@ -125,22 +138,17 @@ def unique_header(table_name: str):
             conn.rollback()
             conn.close()
 
-    return [
-        {
-            "column": row["from"],
-            "references_table": row["table"],
-            "references_column": row["to"]
-        }
-        for row in rows
-    ]
+    return uniques
 
 def not_null_header(table_name: str):
     conn = None
     try:
         conn = get_connection()
         rows = conn.execute(
-            f"PRAGMA foreign_key_list('{table_name}')"
+            f"PRAGMA table_info('{table_name}')"
         ).fetchall()
+
+        not_null = [row["name"] for row in rows if row["notnull"] == 1]
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
     except sqlite3.IntegrityError as e:
@@ -152,19 +160,25 @@ def not_null_header(table_name: str):
             conn.rollback()
             conn.close()
 
-    return [
-        {
-            "column": row["from"],
-            "references_table": row["table"],
-            "references_column": row["to"]
-        }
-        for row in rows
-    ]
+    return not_null
 
 def headers_table(table_name: str):
-    conn = get_connection()
-    rows = conn.execute(f"PRAGMA table_info('{table_name}');").fetchall()
-    conn.close()
+
+    conn = None
+    try:
+        conn = get_connection()
+        rows = conn.execute(f"PRAGMA table_info('{table_name}');").fetchall()
+    except sqlite3.OperationalError as e:
+        raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
+    except sqlite3.IntegrityError as e:
+        raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
+    finally:
+        if conn:
+            conn.rollback()
+            conn.close()
+
     if not rows:
         raise HTTPException(status_code=404, detail="Tabla no encontrada")
 
@@ -389,6 +403,12 @@ curl -X DELETE "http://localhost:8000/users/40" -v
 
 
     if table_name is not None:
+        idtable = id_table(table_name)
+        campos = headers_table(table_name)
+        fk = fk_headers(table_name)
+        #[0]["column"]
+        unique = unique_header(table_name)
+        not_null = not_null_header(table_name)
 
 
 
@@ -398,10 +418,11 @@ curl -X DELETE "http://localhost:8000/users/40" -v
 
 
 
-
-        md=f"""id->   {id_table(table_name)}    <br>        
-                campos->   {headers_table(table_name)}
-                <br>  fk-> {fk_headers(table_name)}
+        md=f"""id->   {idtable}    
+        <br>  campos->   {campos}
+        <br>  fk-> {fk}
+        <br>  unique-> {unique}
+        <br>  not_null-> {not_null}
 
 """
 
