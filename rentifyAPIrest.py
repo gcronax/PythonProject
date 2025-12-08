@@ -245,46 +245,6 @@ def headers_table(table_name: str):
 
 
 
-@app.get("/show/{table_name}")
-def get_data(table_name: str, by_id: Optional[int] = None):
-    validate_table_name(table_name)
-
-    try:
-        if by_id:
-            query = f"SELECT * FROM {table_name} WHERE {id_table(table_name)} = ?"
-            rows = execute_query(query, [by_id])
-            if not rows:
-                raise HTTPException(status_code=404, detail="Registro no encontrado")
-            return dict(rows[0])
-        else:
-            query = f"SELECT * FROM {table_name}"
-            rows = execute_query(query)
-            return [dict(row) for row in rows]
-    except Exception as e:
-        raise e
-
-
-@app.get("/filter/{table_name}")
-def get_data_where(table_name: str,  request: Request):
-    validate_table_name(table_name)
-
-    query_params = dict(request.query_params)
-    print(query_params)
-    print(headers_table(table_name))
-
-    query = f"SELECT * FROM {table_name} WHERE 1=1"
-    params = []
-
-    for name, value in query_params.items():
-        if name in headers_table(table_name):
-            query += f" AND {name} = ?"
-            params.append(value)
-
-    conn = get_connection()
-    result = conn.execute(query, params).fetchall()
-    conn.close()
-
-    return [dict(row) for row in result]
 
 
 #post
@@ -572,6 +532,49 @@ Documentación automática hecha por la propia API
     """
 
     return html
+
+@app.get("/{table_name}")
+def get_data(table_name: str, request: Request):
+    validate_table_name(table_name)
+
+    validate_table_exists(table_name)
+    query_params = dict(request.query_params)
+    print(query_params)
+    print(headers_table(table_name))
+
+    if query_params:
+        first_key = list(query_params.keys())[0]
+        if first_key.isdigit():
+            try:
+                query = f"SELECT * FROM {table_name} WHERE {id_table(table_name)} = ?"
+                rows = execute_query(query, [first_key])
+                if not rows:
+                    raise HTTPException(status_code=404, detail="Registro no encontrado")
+                return dict(rows[0])
+            except Exception as e:
+                raise e
+        else:
+            for row in list(query_params.keys()):
+                if row not in headers_table(table_name):
+                    raise HTTPException(status_code=404, detail=f"Cabezera {row} no existe en la tabla {table_name}")
+
+            query = f"SELECT * FROM {table_name} WHERE 1=1"
+            params = []
+
+            for name, value in query_params.items():
+                if name in headers_table(table_name):
+                    query += f" AND {name} = ?"
+                    params.append(value)
+
+            conn = get_connection()
+            result = conn.execute(query, params).fetchall()
+            conn.close()
+
+            return [dict(row) for row in result]
+    else:
+        query = f"SELECT * FROM {table_name}"
+        rows = execute_query(query)
+        return [dict(row) for row in rows]
 
 
 
