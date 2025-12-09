@@ -544,7 +544,7 @@ async def get_pdf():
 @app.get("/image")
 async def get_image():
     image_path = "resources/images/imagTest.jpg"
-    return FileResponse(image_path, media_type="image/png")
+    return FileResponse(image_path, media_type="image/jpg")
 
 @app.get("/{table_name}")
 def get_data(table_name: str, request: Request):
