@@ -53,6 +53,11 @@ def execute_query(query: str, params=None):
 def root():
     return {"message": "API Rentify cooking"}
 
+@app.get("/favicon.ico")
+async def favicon():
+    return ""
+
+
 def validate_table_name(table_name: str):
     if not re.match(r"^[a-z]+$", table_name):
         raise HTTPException(status_code=400, detail="Nombre de tabla inválido")
@@ -243,7 +248,24 @@ def headers_table(table_name: str):
     return headers
 
 
+@app.get("/login")
+def login_user( email: str, password: str):
 
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email y password obligatorios")
+
+    query = f"""
+        SELECT * FROM users
+        WHERE email = ? AND password = ?
+        LIMIT 1
+    """
+
+    rows = execute_query(query, [email, password])
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    return dict(rows[0])
 
 
 
