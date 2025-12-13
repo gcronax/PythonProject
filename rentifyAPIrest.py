@@ -265,7 +265,7 @@ def headers_table(table_name: str):
     return headers
 
 
-@app.get("/login")
+@app.post("/login")
 def login_user( email: str, password: str):
 
     if not email or not password:
