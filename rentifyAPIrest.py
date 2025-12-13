@@ -58,6 +58,23 @@ async def favicon():
     return ""
 
 
+def parse_error(error_msg: str) -> str:
+
+    try:
+        field = error_msg.split(":")[1].strip().split(".")[-1]
+
+        if "UNIQUE constraint failed" in error_msg:
+            return f"{field} ya existe"
+
+        if "NOT NULL constraint failed" in error_msg:
+            return f"{field} no puede ser nulo"
+
+    except Exception:
+        pass
+
+    return "constraint error"
+
+
 def validate_table_name(table_name: str):
     if not re.match(r"^[a-z]+$", table_name):
         raise HTTPException(status_code=400, detail="Nombre de tabla inválido")
@@ -317,7 +334,7 @@ async def insert_data(table_name: str,  request: Request):
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
     except sqlite3.IntegrityError as e:
-        raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
+        raise HTTPException(status_code=409, detail=f"Error de integridad: {parse_error(str(e))}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
     finally:
@@ -374,7 +391,7 @@ async def update_data(table_name: str, by_id: int, request: Request):
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Error SQL: {str(e)}")
     except sqlite3.IntegrityError as e:
-        raise HTTPException(status_code=409, detail=f"Error de integridad: {str(e)}")
+        raise HTTPException(status_code=409, detail=f"Error de integridad: {parse_error(str(e))}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error inesperado: {str(e)}")
     finally:
